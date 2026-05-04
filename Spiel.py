@@ -27,7 +27,7 @@ TILE_SIZE = 60
 # Tile-IDs (0 = leer, 1 = Metallplattform, 2 = Hohlraum)
 TILE_IMAGES = {
     0: None,  # Leer
-    1: "metal.png",
+    1: "metalCenter.png",
     2: "dirtCaveTop.png",
 }
 
