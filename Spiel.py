@@ -1,15 +1,25 @@
 import pgzrun
 
-# Konstanten
+# Globale Konstanten
 WIDTH = 1200
 HEIGHT = 800
 
+# Charakter Konstanten
 MOVE_SPEED = 5
 JUMP_SPEED = 20
 WALK_ANIM_DELAY = 5
 WALK_FRAMES = ["alienyellow_walk1.png", "alienyellow_walk2.png"]
 GRAVITY = 0.8
 MAX_FALL_SPEED = 15
+
+# Startbutton Konstanten
+START_BUTTON_TEXT = "Start"
+START_BUTTON_WIDTH = 240
+START_BUTTON_HEIGHT = 70
+START_BUTTON_X = WIDTH // 2
+START_BUTTON_Y = HEIGHT // 2
+
+game_started = False
 
 # Charakter
 charakter = Actor("alienyellow_stand.png", anchor=("center", "bottom"))
@@ -19,11 +29,20 @@ charakter.walk_tick = 0
 
 def draw():
     screen.fill("black")
+
+    # Zeichne Startbutton, wenn das Spiel noch nicht gestartet ist
+    if not game_started:
+        button_left = START_BUTTON_X - START_BUTTON_WIDTH // 2
+        button_top = START_BUTTON_Y - START_BUTTON_HEIGHT // 2
+        button_rect = Rect((button_left, button_top), (START_BUTTON_WIDTH, START_BUTTON_HEIGHT))
+        screen.draw.filled_rect(button_rect, "darkblue")
+        screen.draw.text(START_BUTTON_TEXT, center=(START_BUTTON_X, START_BUTTON_Y), fontsize=48, color="white")
+        screen.draw.text("Klicke hier, um zu starten", center=(WIDTH // 2, START_BUTTON_Y - 90), fontsize=32, color="white")
+        return
+
     # Zeichne Charakter
     charakter.draw()
     
-
-# Bewegungslogik
 
 charakter.vx = 0
 charakter.vy = 0
@@ -50,6 +69,9 @@ def update():
         charakter.walk_tick = 0
         charakter.image = "alienyellow_stand.png"
     
+    if not game_started:
+        return
+
     # y-Geschwindigkeit berechnen (Springen und Schwerkraft)
     if charakter.bottom >= HEIGHT and keyboard.space:
         charakter.vy = -JUMP_SPEED
@@ -62,6 +84,20 @@ def update():
     if charakter.bottom > HEIGHT:
         charakter.bottom = HEIGHT
         charakter.vy = 0
+
+
+def on_mouse_down(pos):
+    # Überprüfe, ob der Startbutton angeklickt wurde
+    global game_started
+    if game_started:
+        return
+
+    button_left = START_BUTTON_X - START_BUTTON_WIDTH // 2
+    button_right = START_BUTTON_X + START_BUTTON_WIDTH // 2
+    button_top = START_BUTTON_Y - START_BUTTON_HEIGHT // 2
+    button_bottom = START_BUTTON_Y + START_BUTTON_HEIGHT // 2
+    if button_left <= pos[0] <= button_right and button_top <= pos[1] <= button_bottom:
+        game_started = True
 
 
 pgzrun.go()
