@@ -2,7 +2,7 @@ import pgzrun
 
 # Globale Konstanten
 WIDTH = 1200
-HEIGHT = 800
+HEIGHT = 780
 
 # Charakter Konstanten
 MOVE_SPEED = 5
@@ -20,6 +20,56 @@ START_BUTTON_X = WIDTH // 2
 START_BUTTON_Y = HEIGHT // 2
 
 game_started = False
+
+# Tile-Konstanten
+TILE_SIZE = 60
+
+# Tile-IDs (0 = leer, 1 = Metallplattform, 2 = Hohlraum)
+TILE_IMAGES = {
+    0: None,  # Leer
+    1: "metal.png",
+    2: "dirtCaveTop.png",
+}
+
+# Bilder vorher laden und skalieren (Caching)
+tile_sprites = {}
+import pygame
+for tile_id, image_name in TILE_IMAGES.items():
+    if image_name:
+        try:
+            img = pygame.image.load(f"Tiles/{image_name}")
+            img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+            tile_sprites[tile_id] = img
+        except:
+            pass
+
+# Map-Layout (0 = leer, 1 = Plattform, etc.)
+tilemap = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],  
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1],  
+    [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],  
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1],  
+    [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+]
+
+def draw_tilemap():
+    """Zeichne alle Tiles der Map"""
+    for row in range(len(tilemap)):
+        for col in range(len(tilemap[row])):
+            tile_id = tilemap[row][col]
+            if tile_id > 0 and tile_id in tile_sprites:
+                x = col * TILE_SIZE
+                y = row * TILE_SIZE
+                screen.surface.blit(tile_sprites[tile_id], (x, y))
+
 
 # Charakter
 charakter = Actor("alienyellow_stand.png", anchor=("center", "bottom"))
