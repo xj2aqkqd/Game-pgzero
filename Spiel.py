@@ -92,6 +92,7 @@ def draw():
 
     # Zeichne Charakter
     charakter.draw()
+
     
 
 charakter.vx = 0
