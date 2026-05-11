@@ -20,7 +20,7 @@ PLATFORM_Y_MAX = HEIGHT - 260
 PLATFORM_AHEAD_MARGIN = 600
 
 # Bat-Konstanten
-BAT_COUNT = 5
+BAT_COUNT = 10
 BAT_SPEED_MIN = 2
 BAT_SPEED_MAX = 4
 BAT_RANGE = 160
@@ -36,6 +36,7 @@ START_BUTTON_Y = HEIGHT // 2
 # Weitere Konstanten
 game_started = False
 game_over = False
+game_won = False
 camera_x = 0
 next_platform_x = 1200
 
@@ -64,11 +65,20 @@ metalplatforms = [
     create_platform(980, HEIGHT),
     create_platform(1180, HEIGHT - 140),
     create_platform(1400, HEIGHT - 200),
+    create_platform(1700, HEIGHT - 160),
 ]
+
+goal_platform = create_platform(5000, HEIGHT - 140)
+metalplatforms.append(goal_platform)
+
+# Zielelement
+goal = Actor("alienblue.png", anchor=("center", "bottom"))
+goal.x = goal_platform.x
+goal.bottom = goal_platform.top
 
 # Fledermäuse
 bats = []
-
+# Funktion zum Erstellen einer Fledermaus
 def create_bat(x, y, speed):
     bat = Actor("bat_fly.png", anchor=("center", "center"))
     bat.x = x
@@ -77,9 +87,18 @@ def create_bat(x, y, speed):
     bat.left_bound = x - BAT_RANGE
     bat.right_bound = x + BAT_RANGE
     return bat
-
-for i in range(BAT_COUNT):
-    x = 600 + i * 280 + random.randint(-80, 80)
+# Fledermäuse zufällig im Level verteilen
+if BAT_COUNT > 1:
+    level_start = 600
+    level_end = 5000
+    step = (level_end - level_start) / (BAT_COUNT - 1)
+    for i in range(BAT_COUNT):
+        x = int(level_start + i * step + random.randint(-40, 40))
+        y = random.choice(BAT_HEIGHTS)
+        speed = random.choice([-BAT_SPEED_MIN, BAT_SPEED_MIN, -BAT_SPEED_MAX, BAT_SPEED_MAX])
+        bats.append(create_bat(x, y, speed))
+else:
+    x = 1200
     y = random.choice(BAT_HEIGHTS)
     speed = random.choice([-BAT_SPEED_MIN, BAT_SPEED_MIN, -BAT_SPEED_MAX, BAT_SPEED_MAX])
     bats.append(create_bat(x, y, speed))
@@ -117,9 +136,17 @@ def draw():
         bat_screen_x = bat.x - camera_x
         if -100 < bat_screen_x < WIDTH + 100:
             screen.blit(bat.image, (bat_screen_x - bat.width // 2, bat.y - bat.height // 2))
-    
+
+    goal_screen_x = goal.x - camera_x
+    if -100 < goal_screen_x < WIDTH + 100:
+        screen.blit(goal.image, (goal_screen_x - goal.width // 2, goal.y - goal.height))
+
     charakter_screen_x = charakter.x - camera_x
     screen.blit(charakter.image, (charakter_screen_x - charakter.width // 2, charakter.y - charakter.height))
+
+    if game_won:
+        screen.draw.text("You Win!", center=(WIDTH // 2, HEIGHT // 2), fontsize=80, color="yellow", owidth=2, ocolor="black")
+        return
 
     if game_over:
         screen.draw.text("GAME OVER", center=(WIDTH // 2, HEIGHT // 2), fontsize=80, color="red", owidth=2, ocolor="black")
@@ -129,7 +156,7 @@ def draw():
 charakter.vx = 0
 charakter.vy = 0
 def update():
-    global game_over, camera_x
+    global game_over, game_won, camera_x
     moving = False
 
     # x-Geschwindigkeit berechnen (links/rechts)
@@ -152,7 +179,7 @@ def update():
         charakter.walk_tick = 0
         charakter.image = "alienyellow_stand.png"
     
-    if not game_started or game_over:
+    if not game_started or game_over or game_won:
         return
 
     # y-Geschwindigkeit berechnen (Springen und Schwerkraft)
@@ -206,6 +233,17 @@ def update():
         charakter.image = "alienyellow_hurt.png"
         charakter.vy = 0
 
+    if any(charakter.colliderect(bat) for bat in bats):
+        game_over = True
+        charakter.image = "alienyellow_hurt.png"
+        charakter.vy = 0
+
+    # Siegbedingung
+    if charakter.colliderect(goal):
+        game_won = True
+        charakter.image = "alienyellow_stand.png"
+        charakter.vy = 0
+
     # Kamera dem Charakter folgen lassen
     global camera_x
     camera_x = charakter.x - WIDTH // 3
@@ -241,9 +279,10 @@ def on_mouse_down(pos):
 
 # Neustart bei Game Over
 def on_key_down(key):
-    global game_started, game_over
-    if key == keys.R and game_over:
+    global game_started, game_over, game_won
+    if key == keys.R and (game_over or game_won):
         game_over = False
+        game_won = False
         game_started = False
         charakter.image = "alienyellow_stand.png"
         charakter.midbottom = (200, 100)
