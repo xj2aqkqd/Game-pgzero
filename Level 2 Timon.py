@@ -279,10 +279,9 @@ def on_mouse_down(pos):
 
 # Neustart bei Game Over
 def on_key_down(key):
-    global game_started, game_over, game_won
-    if key == keys.R and (game_over or game_won):
+    global game_started, game_over
+    if key == keys.R and game_over:
         game_over = False
-        game_won = False
         game_started = False
         charakter.image = "alienyellow_stand.png"
         charakter.midbottom = (200, 100)
