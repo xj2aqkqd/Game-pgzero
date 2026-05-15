@@ -68,10 +68,10 @@ metalplatforms = [
     create_platform(1700, HEIGHT - 160),
 ]
 
-goal_platform = create_platform(5000, HEIGHT - 140)
+goal_platform = create_platform(2500, HEIGHT - 140)
 metalplatforms.append(goal_platform)
 
-# Zielelement
+ # Zielelement   
 goal = Actor("alienblue.png", anchor=("center", "bottom"))
 goal.x = goal_platform.x
 goal.bottom = goal_platform.top
@@ -114,7 +114,7 @@ def spawn_platforms():
         next_platform_x += spacing
 
 def draw():
-    screen.fill("black")
+    screen.blit("grauer_hintergrund.jpg", (0, 0))
 
     # Zeichne Startbutton, wenn das Spiel noch nicht gestartet ist
     if not game_started:
@@ -157,6 +157,9 @@ charakter.vx = 0
 charakter.vy = 0
 def update():
     global game_over, game_won, camera_x
+    if not game_started or game_over or game_won:
+        return
+
     moving = False
 
     # x-Geschwindigkeit berechnen (links/rechts)
@@ -279,7 +282,7 @@ def on_mouse_down(pos):
 
 # Neustart bei Game Over
 def on_key_down(key):
-    global game_started, game_over
+    global game_started, game_over, game_won
     if key == keys.R and game_over:
         game_over = False
         game_started = False

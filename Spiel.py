@@ -35,7 +35,6 @@ TILE_IMAGES = {
     0: None,  # Leer
     1: "metalCenter.png",
 }
-LEVEL2_SCRIPT = "Level 2 Timon.py"
 
 # Bilder vorher laden und skalieren (Caching)
 tile_sprites = {}
@@ -132,14 +131,6 @@ def resolve_vertical_collisions():
             # Kopf trifft ein Tile: abprallen
             charakter.top = tile_rect.bottom
             charakter.vy = -charakter.vy * 0.4
-
-
-def start_next_level():
-    script_path = os.path.join(os.path.dirname(__file__), LEVEL2_SCRIPT)
-    if not os.path.exists(script_path):
-        print(f"Level-2-Skript nicht gefunden: {script_path}")
-        return
-    os.execv(sys.executable, [sys.executable, script_path])
 
 
 # Charakter
