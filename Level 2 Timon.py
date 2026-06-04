@@ -1,7 +1,7 @@
-import pgzrun
+import pygame
 import random
 
-# Globale Konstanten
+# Globale Konstantanten
 WIDTH = 1200
 HEIGHT = 800
 
@@ -39,6 +39,13 @@ game_over = False
 game_won = False
 camera_x = 0
 next_platform_x = 1200
+
+background_image = None
+try:
+    bg = pygame.image.load("Images/weltraum.jpg")
+    background_image = pygame.transform.scale(bg, (WIDTH, HEIGHT))
+except Exception:
+    background_image = None
 
 # Hilfsfunktion zum Erstellen einer Plattform
 def create_platform(x, y):
@@ -104,17 +111,60 @@ else:
     bats.append(create_bat(x, y, speed))
 
 # Plattformen nachladen, wenn die Kamera nach rechts wandert
+def platforms_overlap(p1, p2):
+    if p1.right <= p2.left or p1.left >= p2.right:
+        return False
+    return abs(p1.top - p2.top) < 100
+
+
+def bat_collides_with_platform(bat, next_x, next_y):
+    bat_rect = Rect((next_x - bat.width // 2, next_y - bat.height // 2), (bat.width, bat.height))
+    for platform in metalplatforms:
+        platform_rect = Rect((platform.left, platform.top), (platform.width, platform.height))
+        if bat_rect.colliderect(platform_rect):
+            return True
+    return False
+
+
+def unstick_bat(bat):
+    if not bat_collides_with_platform(bat, bat.x, bat.y):
+        return
+    for offset in range(1, 101):
+        for candidate in (bat.x + offset, bat.x - offset):
+            if bat.left_bound <= candidate <= bat.right_bound and not bat_collides_with_platform(bat, candidate, bat.y):
+                bat.x = candidate
+                return
+    for offset in range(1, 51):
+        new_y = bat.y - offset
+        if new_y >= 0 and not bat_collides_with_platform(bat, bat.x, new_y):
+            bat.y = new_y
+            return
+
+
 def spawn_platforms():
     global next_platform_x
     while next_platform_x < camera_x + WIDTH + PLATFORM_AHEAD_MARGIN:
-        y = random.choice([HEIGHT, HEIGHT - 140, HEIGHT - 180, HEIGHT - 220])
-        spacing = random.randrange(170, 260)
-        platform = create_platform(next_platform_x, y)
-        metalplatforms.append(platform)
+        spacing = random.randrange(220, 320)
         next_platform_x += spacing
+        y_choices = [HEIGHT, HEIGHT - 140, HEIGHT - 180, HEIGHT - 220]
+        random.shuffle(y_choices)
+        placed = False
+        for y in y_choices:
+            platform = create_platform(next_platform_x, y)
+            if not any(platforms_overlap(platform, existing) for existing in metalplatforms):
+                metalplatforms.append(platform)
+                placed = True
+                break
+        if not placed:
+            # Falls alle möglichen Höhen knapp sind, setze auf den Boden
+            metalplatforms.append(create_platform(next_platform_x, HEIGHT))
+
 
 def draw():
-    screen.blit("grauer_hintergrund.jpg", (0, 0))
+    if background_image:
+        screen.surface.blit(background_image, (0, 0))
+    else:
+        screen.blit("weltraum.jpg", (0, 0))
 
     # Zeichne Startbutton, wenn das Spiel noch nicht gestartet ist
     if not game_started:
@@ -140,6 +190,20 @@ def draw():
     goal_screen_x = goal.x - camera_x
     if -100 < goal_screen_x < WIDTH + 100:
         screen.blit(goal.image, (goal_screen_x - goal.width // 2, goal.y - goal.height))
+
+        arrow_tip = (goal_screen_x, goal.y - goal.height - 10)
+        arrow_base = (goal_screen_x, goal.y - goal.height - 80)
+        screen.draw.line(arrow_base, arrow_tip, "white")
+        screen.draw.line((arrow_tip[0] - 10, arrow_tip[1] + 15), arrow_tip, "white")
+        screen.draw.line((arrow_tip[0] + 10, arrow_tip[1] + 15), arrow_tip, "white")
+        screen.draw.text(
+            "Rette mich!",
+            midtop=(goal_screen_x, arrow_base[1] - 40),
+            fontsize=40,
+            color="yellow",
+            owidth=2,
+            ocolor="black",
+        )
 
     charakter_screen_x = charakter.x - camera_x
     screen.blit(charakter.image, (charakter_screen_x - charakter.width // 2, charakter.y - charakter.height))
@@ -255,13 +319,27 @@ def update():
 
     # Bat-Bewegung aktualisieren
     for bat in bats:
-        bat.x += bat.vx
+        next_x = bat.x + bat.vx
+        if bat_collides_with_platform(bat, next_x, bat.y):
+            bat.vx = -bat.vx
+            # Versuche, aus der Plattform hinauszurutschen
+            step = 1 if bat.vx > 0 else -1
+            candidate_x = bat.x + step
+            while bat.left_bound <= candidate_x <= bat.right_bound and bat_collides_with_platform(bat, candidate_x, bat.y):
+                candidate_x += step
+            if bat.left_bound <= candidate_x <= bat.right_bound and not bat_collides_with_platform(bat, candidate_x, bat.y):
+                bat.x = candidate_x
+        else:
+            bat.x = next_x
+
         if bat.x < bat.left_bound:
             bat.x = bat.left_bound
             bat.vx = -bat.vx
         elif bat.x > bat.right_bound:
             bat.x = bat.right_bound
             bat.vx = -bat.vx
+
+        unstick_bat(bat)
 
     # Weitere Plattformen nachladen, damit beim Scrollen immer neue kommen
     spawn_platforms()
@@ -291,4 +369,5 @@ def on_key_down(key):
         charakter.vx = 0
         charakter.vy = 0
 
-pgzrun.go()
+if __name__ == "__main__":
+    pgzrun.go()

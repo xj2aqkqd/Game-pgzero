@@ -1,9 +1,10 @@
+import importlib.util
 import os
 import sys
-import subprocess
+from pathlib import Path
 import pgzrun
 
-# Globale Konstanten
+# Globale Konstantanten
 WIDTH = 1200
 HEIGHT = 780
 
@@ -26,6 +27,8 @@ START_BUTTON_Y = HEIGHT // 2
 game_started = False
 is_dead = False
 level_completed = False
+current_level = 1
+level_module = None
 
 # Tile-Konstanten
 TILE_SIZE = 60
@@ -48,21 +51,28 @@ for tile_id, image_name in TILE_IMAGES.items():
         except Exception:
             pass
 
+background_image = None
+try:
+    bg = pygame.image.load("Images/weltraum.jpg")
+    background_image = pygame.transform.scale(bg, (WIDTH, HEIGHT))
+except Exception:
+    background_image = None
+
 # Map-Layout (0 = leer, 1 = Plattform, etc.)
 tilemap = [
-    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  
-    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1],
-    [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],  
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+    [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
 ]
 
 
@@ -139,8 +149,11 @@ charakter.midbottom = (200, 100)
 charakter.walk_frame = 0
 charakter.walk_tick = 0
 
-def draw():
-    screen.fill("black")
+def draw_level1():
+    if background_image:
+        screen.surface.blit(background_image, (0, 0))
+    else:
+        screen.blit("weltraum.jpg", (0, 0))
 
     # Zeichne Startbutton, wenn das Spiel noch nicht gestartet ist
     if not game_started:
@@ -149,7 +162,8 @@ def draw():
         button_rect = Rect((button_left, button_top), (START_BUTTON_WIDTH, START_BUTTON_HEIGHT))
         screen.draw.filled_rect(button_rect, "darkblue")
         screen.draw.text(START_BUTTON_TEXT, center=(START_BUTTON_X, START_BUTTON_Y), fontsize=48, color="white")
-        screen.draw.text("Drücke R, um zu starten", center=(WIDTH // 2, START_BUTTON_Y - 90), fontsize=32, color="white")
+        screen.draw.text("Hallo Yellow! Deine Mission: Rette Blue!", center=(WIDTH // 2, START_BUTTON_Y - 100), fontsize=32, color="white")
+        screen.draw.text("Pfeiltasten = bewegen, Leertaste = springen", center=(WIDTH // 2, START_BUTTON_Y - 55), fontsize=28, color="white")
         return
 
     if is_dead:
@@ -164,7 +178,7 @@ def draw():
 
     if level_completed:
         screen.draw.text("Level geschafft!", center=(WIDTH // 2, HEIGHT // 2 - 80), fontsize=72, color="yellow")
-        screen.draw.text("Drücke F für neues Level", center=(WIDTH // 2, HEIGHT // 2 - 20), fontsize=36, color="white")
+        screen.draw.text("Drücke F um Blue zu retten!", center=(WIDTH // 2, HEIGHT // 2 - 20), fontsize=36, color="white")
         return
 
     # Zeichne Karte und Charakter
@@ -179,7 +193,7 @@ def draw():
 
 charakter.vx = 0
 charakter.vy = 0
-def update():
+def update_level1():
     global is_dead, level_completed
     moving = False
     dx = 0
@@ -252,7 +266,87 @@ def reset_game():
     camera_y = 0
 
 
-def on_key_down(key):
+def find_level2_file():
+    script_path = None
+    if sys.argv and sys.argv[0]:
+        script_path = Path(sys.argv[0]).resolve()
+    if script_path is None or not script_path.exists():
+        script_path = Path(__file__).resolve()
+    base = script_path.parent
+
+    candidates = [
+        base / "Level 2 Timon.py",
+        base / "Level2 Timon.py",
+        base / "Level_2_Timon.py",
+        base / "level 2 timon.py",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    for path in base.glob("*.py"):
+        name = path.name.lower()
+        if "level" in name and "2" in name and "timon" in name:
+            return path
+
+    # Fallback: Suche im aktuellen Arbeitsverzeichnis, falls Pfad nicht stimmt
+    cwd = Path.cwd()
+    if cwd != base:
+        for path in cwd.glob("*.py"):
+            name = path.name.lower()
+            if "level" in name and "2" in name and "timon" in name:
+                return path
+
+    print("Level 2 Datei nicht gefunden.")
+    print("__file__:", Path(__file__).resolve())
+    print("sys.argv[0]:", sys.argv[0])
+    print("Suchverzeichnis:", base)
+    print("Verfügbare Python-Dateien in", base, ":", [p.name for p in sorted(base.glob('*.py'))])
+    if cwd != base:
+        print("Verfügbare Python-Dateien in CWD", cwd, ":", [p.name for p in sorted(cwd.glob('*.py'))])
+    return None
+
+
+def load_level2_module():
+    global level_module
+    if level_module is not None:
+        return
+    level2_file = find_level2_file()
+    if level2_file is None:
+        return
+    print("Lade Level 2 von:", level2_file)
+    spec = importlib.util.spec_from_file_location("level2_timon", str(level2_file))
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    module.__dict__.update({
+        'Actor': Actor,
+        'Rect': Rect,
+        'screen': screen,
+        'keyboard': keyboard,
+        'keys': keys,
+    })
+    try:
+        spec.loader.exec_module(module)
+    except Exception as e:
+        print("Fehler beim Laden von Level 2:", e)
+        level_module = None
+        return
+    level_module = module
+
+
+def switch_to_level2():
+    global current_level
+    load_level2_module()
+    if level_module is not None:
+        current_level = 2
+
+
+def start_next_level():
+    """Wechsle auf das nächste Level im gleichen Prozess."""
+    switch_to_level2()
+
+
+def on_key_down_level1(key):
     global game_started, is_dead, level_completed
     if key == keys.R:
         if not game_started or is_dead:
@@ -261,7 +355,7 @@ def on_key_down(key):
         start_next_level()
 
 
-def on_mouse_down(pos):
+def on_mouse_down_level1(pos):
     global game_started, is_dead
     button_left = START_BUTTON_X - START_BUTTON_WIDTH // 2
     button_right = START_BUTTON_X + START_BUTTON_WIDTH // 2
@@ -277,5 +371,33 @@ def on_mouse_down(pos):
         button_bottom = button_top + START_BUTTON_HEIGHT
         if button_left <= pos[0] <= button_right and button_top <= pos[1] <= button_bottom:
             reset_game()
+
+
+def draw():
+    if current_level == 1:
+        draw_level1()
+    elif level_module is not None and hasattr(level_module, "draw"):
+        level_module.draw()
+
+
+def update():
+    if current_level == 1:
+        update_level1()
+    elif level_module is not None and hasattr(level_module, "update"):
+        level_module.update()
+
+
+def on_key_down(key):
+    if current_level == 1:
+        on_key_down_level1(key)
+    elif level_module is not None and hasattr(level_module, "on_key_down"):
+        level_module.on_key_down(key)
+
+
+def on_mouse_down(pos):
+    if current_level == 1:
+        on_mouse_down_level1(pos)
+    elif level_module is not None and hasattr(level_module, "on_mouse_down"):
+        level_module.on_mouse_down(pos)
 
 pgzrun.go()
