@@ -24,6 +24,7 @@ START_BUTTON_HEIGHT = 70
 START_BUTTON_X = WIDTH // 2
 START_BUTTON_Y = HEIGHT // 2
 
+# Weitere globale Variablen
 game_started = False
 is_dead = False
 level_completed = False
@@ -75,7 +76,7 @@ tilemap = [
     [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
 ]
 
-
+# Map-Offset für die Kamera
 def draw_tilemap():
     """Zeichne alle Tiles der Map"""
     for row, tiles in enumerate(tilemap):
@@ -85,11 +86,11 @@ def draw_tilemap():
                 y = row * TILE_SIZE - camera_y
                 screen.surface.blit(tile_sprites[tile_id], (x, y))
 
-
+# Hilfsfunktionen für Kollisionserkennung
 def get_tile_rect(row, col):
     return Rect((col * TILE_SIZE, row * TILE_SIZE), (TILE_SIZE, TILE_SIZE))
 
-
+# Gibt alle festen Tiles zurück, die mit dem Actor kollidieren könnten
 def get_solid_tiles(actor):
     left_col = int(actor.left // TILE_SIZE)
     right_col = int((actor.right - 1) // TILE_SIZE)
@@ -102,7 +103,7 @@ def get_solid_tiles(actor):
                 tiles.append((row, col))
     return tiles
 
-
+# Kollisionen auf der x-Achse auflösen
 def resolve_horizontal_collisions(dx):
     if dx == 0:
         return
@@ -113,7 +114,7 @@ def resolve_horizontal_collisions(dx):
         elif dx < 0 and charakter.left < tile_rect.right and charakter.right > tile_rect.right:
             charakter.left = tile_rect.right
 
-
+# Prüfen, ob der Charakter auf dem Boden steht (für Sprung-Logik)
 def is_on_ground():
     if charakter.bottom >= HEIGHT:
         return True
@@ -129,7 +130,7 @@ def is_on_ground():
                 return True
     return False
 
-
+# Kollisionen auf der y-Achse auflösen
 def resolve_vertical_collisions():
     for row, col in get_solid_tiles(charakter):
         tile_rect = get_tile_rect(row, col)
@@ -149,6 +150,7 @@ charakter.midbottom = (200, 100)
 charakter.walk_frame = 0
 charakter.walk_tick = 0
 
+# Zeichne den Startbildschirm, das Spiel oder den Game-Over-Bildschirm
 def draw_level1():
     if background_image:
         screen.surface.blit(background_image, (0, 0))
@@ -165,7 +167,8 @@ def draw_level1():
         screen.draw.text("Hallo Yellow! Deine Mission: Rette Blue!", center=(WIDTH // 2, START_BUTTON_Y - 100), fontsize=32, color="white")
         screen.draw.text("Pfeiltasten = bewegen, Leertaste = springen", center=(WIDTH // 2, START_BUTTON_Y - 55), fontsize=28, color="white")
         return
-
+    
+    # Zeichne Game-Over-Bildschirm, wenn der Charakter gefallen ist
     if is_dead:
         screen.draw.text("Game Over", center=(WIDTH // 2, HEIGHT // 2 - 120), fontsize=72, color="red")
         screen.draw.text("Du bist gefallen. Drücke R zum Neustart", center=(WIDTH // 2, HEIGHT // 2 - 40), fontsize=36, color="white")
@@ -175,11 +178,11 @@ def draw_level1():
         screen.draw.filled_rect(button_rect, "darkred")
         screen.draw.text(RESTART_BUTTON_TEXT, center=(START_BUTTON_X, button_top + START_BUTTON_HEIGHT // 2), fontsize=48, color="white")
         return
-
+    # Zeichne Level-Fertig-Bildschirm, wenn der Charakter das Levelende erreicht hat
     if level_completed:
         screen.draw.text("Level geschafft!", center=(WIDTH // 2, HEIGHT // 2 - 80), fontsize=72, color="yellow")
         screen.draw.text("Drücke F um Blue zu retten!", center=(WIDTH // 2, HEIGHT // 2 - 20), fontsize=36, color="white")
-        return
+
 
     # Zeichne Karte und Charakter
     draw_tilemap()
@@ -190,9 +193,10 @@ def draw_level1():
     charakter.draw()
     charakter.x, charakter.y = old_x, old_y
     
-
+# Initiale Geschwindigkeiten auf 0 setzen
 charakter.vx = 0
 charakter.vy = 0
+# Überprüfen, ob Charakter auf dem Boden steht, um den Start zu ermöglichen
 def update_level1():
     global is_dead, level_completed
     moving = False
@@ -251,7 +255,7 @@ def update_level1():
     if not is_dead and not level_completed and charakter.right >= len(tilemap[0]) * TILE_SIZE - 10:
         level_completed = True
 
-
+# Funktion zum Zurücksetzen des Spiels
 def reset_game():
     global is_dead, game_started, camera_x, camera_y
     is_dead = False
@@ -265,7 +269,7 @@ def reset_game():
     camera_x = 0
     camera_y = 0
 
-
+# Suche die Level 2 Datei anhand verschiedener möglicher Namen und Lade sie als Modul
 def find_level2_file():
     script_path = None
     if sys.argv and sys.argv[0]:
@@ -273,7 +277,7 @@ def find_level2_file():
     if script_path is None or not script_path.exists():
         script_path = Path(__file__).resolve()
     base = script_path.parent
-
+    # Versuche verschiedene mögliche Namen für die Level 2 Datei
     candidates = [
         base / "Level 2 Timon.py",
         base / "Level2 Timon.py",
@@ -283,7 +287,7 @@ def find_level2_file():
     for candidate in candidates:
         if candidate.exists():
             return candidate
-
+    # Suche im Verzeichnis nach einer Datei, die "level", "2" und "timon" im Namen hat
     for path in base.glob("*.py"):
         name = path.name.lower()
         if "level" in name and "2" in name and "timon" in name:
@@ -296,7 +300,7 @@ def find_level2_file():
             name = path.name.lower()
             if "level" in name and "2" in name and "timon" in name:
                 return path
-
+    # Wenn keine Datei gefunden wurde, Fehlermeldung ausgeben
     print("Level 2 Datei nicht gefunden.")
     print("__file__:", Path(__file__).resolve())
     print("sys.argv[0]:", sys.argv[0])
@@ -306,7 +310,7 @@ def find_level2_file():
         print("Verfügbare Python-Dateien in CWD", cwd, ":", [p.name for p in sorted(cwd.glob('*.py'))])
     return None
 
-
+# Lade das Level 2 Modul, wenn es noch nicht geladen ist
 def load_level2_module():
     global level_module
     if level_module is not None:
@@ -333,19 +337,19 @@ def load_level2_module():
         return
     level_module = module
 
-
+# Wechsle zum Level 2, wenn es erfolgreich geladen wurde
 def switch_to_level2():
     global current_level
     load_level2_module()
     if level_module is not None:
         current_level = 2
 
-
+# Funktion zum Starten des nächsten Levels
 def start_next_level():
     """Wechsle auf das nächste Level im gleichen Prozess."""
     switch_to_level2()
 
-
+# Hauptfunktion für die Level 1 Eingabe
 def on_key_down_level1(key):
     global game_started, is_dead, level_completed
     if key == keys.R:
@@ -354,9 +358,9 @@ def on_key_down_level1(key):
     elif key == keys.F and level_completed:
         start_next_level()
 
-
+# Hauptfunktion für die Level 1 Mausklicks
 def on_mouse_down_level1(pos):
-    global game_started, is_dead
+    global game_started, is_dead, level_completed
     button_left = START_BUTTON_X - START_BUTTON_WIDTH // 2
     button_right = START_BUTTON_X + START_BUTTON_WIDTH // 2
     if not game_started and not is_dead:
@@ -365,35 +369,43 @@ def on_mouse_down_level1(pos):
         if button_left <= pos[0] <= button_right and button_top <= pos[1] <= button_bottom:
             game_started = True
         return
-
+    # Wenn das Spiel gestartet ist, aber der Charakter gefallen ist, prüfe, ob der Neustart-Button geklickt wurde
     if is_dead:
         button_top = HEIGHT // 2 + 40
         button_bottom = button_top + START_BUTTON_HEIGHT
         if button_left <= pos[0] <= button_right and button_top <= pos[1] <= button_bottom:
             reset_game()
+    
+    if level_completed:
+        button_top = HEIGHT // 2 + 60
+        button_bottom = button_top + START_BUTTON_HEIGHT
+        if button_left <= pos[0] <= button_right and button_top <= pos[1] <= button_bottom:
+            level_completed = False
+            game_started = False
+            reset_game()
 
-
+# Hauptfunktionen für das Zeichnen, Aktualisieren und Eingaben, die je nach aktuellem Level an die entsprechenden Funktionen weiterleiten
 def draw():
     if current_level == 1:
         draw_level1()
     elif level_module is not None and hasattr(level_module, "draw"):
         level_module.draw()
 
-
+# Aktualisiere die Logik, je nachdem welches Level gerade aktiv ist
 def update():
     if current_level == 1:
         update_level1()
     elif level_module is not None and hasattr(level_module, "update"):
         level_module.update()
 
-
+# Verarbeite Tastatureingaben, je nachdem welches Level gerade aktiv ist
 def on_key_down(key):
     if current_level == 1:
         on_key_down_level1(key)
     elif level_module is not None and hasattr(level_module, "on_key_down"):
         level_module.on_key_down(key)
 
-
+# Verarbeite Mausklicks, je nachdem welches Level gerade aktiv ist
 def on_mouse_down(pos):
     if current_level == 1:
         on_mouse_down_level1(pos)

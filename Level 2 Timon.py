@@ -40,6 +40,7 @@ game_won = False
 camera_x = 0
 next_platform_x = 1200
 
+# Hintergrundbild laden
 background_image = None
 try:
     bg = pygame.image.load("Images/weltraum.jpg")
@@ -74,7 +75,7 @@ metalplatforms = [
     create_platform(1400, HEIGHT - 200),
     create_platform(1700, HEIGHT - 160),
 ]
-
+# Zielplattform
 goal_platform = create_platform(2500, HEIGHT - 140)
 metalplatforms.append(goal_platform)
 
@@ -116,7 +117,7 @@ def platforms_overlap(p1, p2):
         return False
     return abs(p1.top - p2.top) < 100
 
-
+# Funktion, um zu prüfen, ob eine Fledermaus mit einer Plattform kollidiert
 def bat_collides_with_platform(bat, next_x, next_y):
     bat_rect = Rect((next_x - bat.width // 2, next_y - bat.height // 2), (bat.width, bat.height))
     for platform in metalplatforms:
@@ -125,7 +126,7 @@ def bat_collides_with_platform(bat, next_x, next_y):
             return True
     return False
 
-
+# Funktion, um eine Fledermaus aus einer Plattform zu befreien, falls sie stecken bleibt
 def unstick_bat(bat):
     if not bat_collides_with_platform(bat, bat.x, bat.y):
         return
@@ -140,7 +141,7 @@ def unstick_bat(bat):
             bat.y = new_y
             return
 
-
+# Funktion zum Nachladen von Plattformen, wenn die Kamera nach rechts wandert
 def spawn_platforms():
     global next_platform_x
     while next_platform_x < camera_x + WIDTH + PLATFORM_AHEAD_MARGIN:
@@ -159,7 +160,7 @@ def spawn_platforms():
             # Falls alle möglichen Höhen knapp sind, setze auf den Boden
             metalplatforms.append(create_platform(next_platform_x, HEIGHT))
 
-
+# Zeichne alle Elemente mit Kamera-Offset
 def draw():
     if background_image:
         screen.surface.blit(background_image, (0, 0))
@@ -181,12 +182,13 @@ def draw():
         platform_screen_x = platform.x - camera_x
         if -100 < platform_screen_x < WIDTH + 100:
             screen.blit(platform.image, (platform_screen_x - platform.width // 2, platform.y - platform.height))
-    
+    # Zeichne Fledermäuse
     for bat in bats:
         bat_screen_x = bat.x - camera_x
         if -100 < bat_screen_x < WIDTH + 100:
             screen.blit(bat.image, (bat_screen_x - bat.width // 2, bat.y - bat.height // 2))
-
+    
+    # Zeichne Ziel mit Pfeil und Text, wenn es in der Nähe der Kamera ist
     goal_screen_x = goal.x - camera_x
     if -100 < goal_screen_x < WIDTH + 100:
         screen.blit(goal.image, (goal_screen_x - goal.width // 2, goal.y - goal.height))
@@ -204,19 +206,20 @@ def draw():
             owidth=2,
             ocolor="black",
         )
-
+    # Zeichne Charakter
     charakter_screen_x = charakter.x - camera_x
     screen.blit(charakter.image, (charakter_screen_x - charakter.width // 2, charakter.y - charakter.height))
-
+    
+    # Zeichne Game Over oder Sieg Text
     if game_won:
-        screen.draw.text("You Win!", center=(WIDTH // 2, HEIGHT // 2), fontsize=80, color="yellow", owidth=2, ocolor="black")
-        return
+        screen.draw.text("You Win!", center=(WIDTH // 2, HEIGHT // 2 - 80), fontsize=80, color="yellow", owidth=2, ocolor="black")
+    
 
     if game_over:
         screen.draw.text("GAME OVER", center=(WIDTH // 2, HEIGHT // 2), fontsize=80, color="red", owidth=2, ocolor="black")
         screen.draw.text("Drücke R, um neu zu starten", center=(WIDTH // 2, HEIGHT // 2 + 80), fontsize=40, color="white")
     
-
+# Initiale Geschwindigkeiten des Charakters
 charakter.vx = 0
 charakter.vy = 0
 def update():
@@ -299,7 +302,8 @@ def update():
         game_over = True
         charakter.image = "alienyellow_hurt.png"
         charakter.vy = 0
-
+    
+    # Game over, wenn der Charakter mit einer Fledermaus kollidiert
     if any(charakter.colliderect(bat) for bat in bats):
         game_over = True
         charakter.image = "alienyellow_hurt.png"
@@ -344,19 +348,27 @@ def update():
     # Weitere Plattformen nachladen, damit beim Scrollen immer neue kommen
     spawn_platforms()
 
-
+# Verarbeite Mausklicks, je nachdem welches Level gerade aktiv ist
 def on_mouse_down(pos):
     # Überprüfe, ob der Startbutton angeklickt wurde
-    global game_started, game_over
+    global game_started, game_over, game_won
     if game_started or game_over:
-        return
-
+        if not game_won:
+            return
+    
+    # Berechne die Grenzen des Startbuttons
     button_left = START_BUTTON_X - START_BUTTON_WIDTH // 2
     button_right = START_BUTTON_X + START_BUTTON_WIDTH // 2
-    button_top = START_BUTTON_Y - START_BUTTON_HEIGHT // 2
-    button_bottom = START_BUTTON_Y + START_BUTTON_HEIGHT // 2
-    if button_left <= pos[0] <= button_right and button_top <= pos[1] <= button_bottom:
-        game_started = True
+    
+    # Startbutton (wenn Spiel noch nicht gestartet)
+    if not game_started and not game_over and not game_won:
+        button_top = START_BUTTON_Y - START_BUTTON_HEIGHT // 2
+        button_bottom = START_BUTTON_Y + START_BUTTON_HEIGHT // 2
+        if button_left <= pos[0] <= button_right and button_top <= pos[1] <= button_bottom:
+            game_started = True
+        return
+    
+    
 
 # Neustart bei Game Over
 def on_key_down(key):
@@ -368,6 +380,7 @@ def on_key_down(key):
         charakter.midbottom = (200, 100)
         charakter.vx = 0
         charakter.vy = 0
+
 
 if __name__ == "__main__":
     pgzrun.go()
