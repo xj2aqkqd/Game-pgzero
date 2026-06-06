@@ -111,7 +111,7 @@ else:
     speed = random.choice([-BAT_SPEED_MIN, BAT_SPEED_MIN, -BAT_SPEED_MAX, BAT_SPEED_MAX])
     bats.append(create_bat(x, y, speed))
 
-# Plattformen nachladen, wenn die Kamera nach rechts wandert
+# Überprüfe, ob zwei Plattformen sich horizontal überlappen und in etwa auf gleicher Höhe sind (um zu verhindern, dass Fledermäuse zwischen ihnen stecken bleiben)
 def platforms_overlap(p1, p2):
     if p1.right <= p2.left or p1.left >= p2.right:
         return False
@@ -212,7 +212,7 @@ def draw():
     
     # Zeichne Game Over oder Sieg Text
     if game_won:
-        screen.draw.text("You Win!", center=(WIDTH // 2, HEIGHT // 2 - 80), fontsize=80, color="yellow", owidth=2, ocolor="black")
+        screen.draw.text("Gratulation! Du hast Blue gerettet!", center=(WIDTH // 2, HEIGHT // 2 - 80), fontsize=80, color="yellow", owidth=2, ocolor="black")
     
 
     if game_over:
